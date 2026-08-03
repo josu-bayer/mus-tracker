@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#08301f">
+<!-- iOS PWA (full screen when added to Home Screen) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mus">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="manifest" href="manifest.json">
+<title>Mus Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Mulish:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --felt-0:#082a1c;
+  --felt-1:#0d3a26;
+  --panel:rgba(15,55,38,0.62);
+  --panel-solid:#0f3726;
+  --line:rgba(212,175,55,0.28);
+  --line-soft:rgba(244,234,210,0.08);
+  --gold:#d4af37;
+  --gold-bright:#f0d78c;
+  --ink:#f4ead2;
+  --muted:#a9c2b2;
+  --danger:#e2665c;
+  --positive:#6fcf97;
+  --radius:16px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:'Mulish',system-ui,-apple-system,sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(900px 560px at 15% -8%, rgba(212,175,55,0.08), transparent 60%),
+    radial-gradient(760px 520px at 100% 0%, rgba(212,175,55,0.05), transparent 55%),
+    linear-gradient(180deg, var(--felt-1), var(--felt-0) 40%);
+  background-attachment:fixed;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:'Cinzel',Georgia,serif;margin:0;letter-spacing:0.01em}
+.app{max-width:640px;margin:0 auto;padding:20px 16px calc(48px + env(safe-area-inset-bottom));padding-top:calc(20px + env(safe-area-inset-top))}
+
+.topbar{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.topbar .coin{width:40px;height:40px;flex:none}
+.topbar h1{font-size:1.5rem;color:var(--gold-bright)}
+.topbar p{margin:2px 0 0;font-size:0.82rem;color:var(--muted)}
+
+.panel{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+}
+
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+.stat-card{padding:14px 14px 12px;display:flex;flex-direction:column;gap:2px}
+.stat-card .icon{width:18px;height:18px;opacity:0.85;margin-bottom:4px}
+.stat-card .label{font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em}
+.stat-card .value{font-size:1.34rem;font-weight:800;font-variant-numeric:proportional-nums}
+.stat-card .value.pos{color:var(--positive)}
+.stat-card .value.neg{color:var(--danger)}
+.stat-card.wide{grid-column:1 / -1}
+
+.chart-card{padding:16px 12px 8px;margin-bottom:16px;position:relative}
+.chart-card h2{font-size:0.95rem;color:var(--gold-bright);padding:0 6px;margin-bottom:2px}
+.chart-card .sub{font-size:0.72rem;color:var(--muted);padding:0 6px;margin-bottom:6px}
+.chart-wrap{position:relative}
+canvas#balanceChart{display:block;width:100%;height:200px;touch-action:pan-y}
+.tooltip{
+  position:absolute;pointer-events:none;background:#04150d;border:1px solid var(--line);
+  border-radius:10px;padding:6px 10px;font-size:0.78rem;color:var(--ink);opacity:0;
+  transform:translate(-50%,-110%);transition:opacity 0.08s ease;white-space:nowrap;z-index:5;
+}
+.tooltip strong{color:var(--gold-bright);font-size:0.92rem}
+.tooltip .t-label{color:var(--muted);display:block;font-size:0.68rem;margin-bottom:2px}
+
+.toolbar{display:flex;justify-content:space-between;align-items:center;margin:4px 4px 12px}
+.toolbar h3{font-size:0.95rem;color:var(--muted);font-family:'Mulish',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;font-size:0.72rem}
+.btn{
+  font-family:'Mulish',sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;
+  border:1px solid var(--line);border-radius:12px;padding:9px 14px;color:var(--ink);
+  background:rgba(255,255,255,0.02);transition:transform 0.05s ease, background 0.15s ease;
+}
+.btn:active{transform:scale(0.97)}
+.btn-primary{background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:#12240f;border-color:transparent;font-weight:800}
+.btn-ghost{background:transparent}
+.btn-danger{color:var(--danger);border-color:rgba(226,102,92,0.4)}
+.btn-small{padding:6px 10px;font-size:0.76rem;border-radius:9px}
+
+.torneo-list{display:flex;flex-direction:column;gap:10px}
+.torneo-card{padding:14px 16px}
+.torneo-card .row1{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.torneo-card .fecha{font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.03em}
+.torneo-card .lugar{font-weight:700;font-size:1rem;color:var(--ink);margin-top:2px}
+.badge{font-size:0.68rem;font-weight:800;padding:4px 9px;border-radius:99px;white-space:nowrap;text-transform:uppercase;letter-spacing:0.02em}
+.badge.win{background:rgba(111,207,151,0.16);color:var(--positive);border:1px solid rgba(111,207,151,0.4)}
+.badge.lose{background:rgba(226,102,92,0.13);color:var(--danger);border:1px solid rgba(226,102,92,0.35)}
+.meta-row{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:0.8rem;color:var(--muted)}
+.meta-row b{color:var(--ink);font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{font-size:0.72rem;background:rgba(212,175,55,0.12);border:1px solid var(--line);color:var(--gold-bright);padding:3px 9px;border-radius:99px}
+.anotaciones{margin-top:10px;font-size:0.86rem;font-style:italic;color:var(--ink);border-left:2px solid var(--gold);padding-left:10px;opacity:0.92;line-height:1.4}
+.card-actions{display:flex;gap:8px;margin-top:12px;justify-content:flex-end}
+
+.empty{text-align:center;color:var(--muted);padding:32px 10px;font-size:0.9rem}
+
+footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;opacity:0.75;line-height:1.5}
+
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(3,15,9,0.72);backdrop-filter:blur(2px);
+  display:flex;align-items:flex-end;justify-content:center;z-index:50;opacity:0;pointer-events:none;transition:opacity 0.15s ease;
+}
+.modal-overlay.open{opacity:1;pointer-events:auto}
+.modal{
+  width:100%;max-width:640px;max-height:92vh;overflow-y:auto;
+  background:var(--panel-solid);border:1px solid var(--line);border-radius:20px 20px 0 0;
+  padding:20px 18px calc(24px + env(safe-area-inset-bottom));
+  transform:translateY(16px);transition:transform 0.15s ease;
+}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal h2{color:var(--gold-bright);font-size:1.15rem;margin-bottom:14px}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:0.76rem;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.03em}
+.field input[type="text"],
+.field input[type="number"],
+.field input[type="date"],
+.field textarea{
+  width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);
+  background:rgba(0,0,0,0.18);color:var(--ink);font-family:inherit;font-size:0.95rem;
+}
+.field textarea{min-height:70px;resize:vertical}
+.field-row{display:flex;gap:10px}
+.field-row .field{flex:1}
+.check-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.check-row input{width:20px;height:20px;accent-color:var(--gold)}
+.posicion-row{display:flex;gap:8px;align-items:flex-end}
+.posicion-row .field{flex:1;margin-bottom:0}
+.hint{font-size:0.72rem;color:var(--muted);margin-top:4px}
+.modal-actions{display:flex;gap:10px;margin-top:18px}
+.modal-actions .btn{flex:1;text-align:center}
+
+@media (min-width:520px){
+  .stat-card.wide{grid-column:auto}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <svg class="coin" viewBox="0 0 100 100" aria-hidden="true">
+      <circle cx="50" cy="50" r="46" fill="#d4af37"/>
+      <circle cx="50" cy="50" r="46" fill="none" stroke="#8a6416" stroke-width="2"/>
+      <circle cx="50" cy="50" r="34" fill="none" stroke="#8a6416" stroke-width="1.6" opacity="0.6"/>
+      <g stroke="#8a6416" stroke-width="1.8" stroke-linecap="round" opacity="0.75">
+        <line x1="50" y1="8" x2="50" y2="18"/>
+        <line x1="50" y1="92" x2="50" y2="82"/>
+        <line x1="8" y1="50" x2="18" y2="50"/>
+        <line x1="92" y1="50" x2="82" y2="50"/>
+        <line x1="17" y1="17" x2="24" y2="24"/>
+        <line x1="83" y1="83" x2="76" y2="76"/>
+        <line x1="83" y1="17" x2="76" y2="24"/>
+        <line x1="17" y1="83" x2="24" y2="76"/>
+      </g>
+    </svg>
+    <div>
+      <h1>Mus Tracker</h1>
+      <p>Historial de torneos</p>
+    </div>
+  </header>
+
+  <section class="stats-grid" id="statsGrid" aria-label="Estadísticas"></section>
+
+  <section class="panel chart-card">
+    <h2>Balance acumulado</h2>
+    <div class="sub" id="chartSub">Suma de premios menos precios, en orden cronológico</div>
+    <div class="chart-wrap">
+      <canvas id="balanceChart"></canvas>
+      <div class="tooltip" id="chartTooltip"></div>
+    </div>
+  </section>
+
+  <div class="toolbar">
+    <h3 id="listCount">Torneos</h3>
+    <button class="btn btn-primary" id="btnNuevo" type="button">+ Nuevo torneo</button>
+  </div>
+
+  <section class="torneo-list" id="torneoList" aria-label="Lista de torneos"></section>
+
+  <footer>
+    Datos guardados solo en este dispositivo (localStorage).<br>
+    Mus Tracker &mdash; hecho para llevar la cuenta de las palizas.
+  </footer>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="modalTitle">Nuevo torneo</h2>
+    <form id="torneoForm">
+      <input type="hidden" id="fId">
+      <div class="field-row">
+        <div class="field">
+          <label for="fFecha">Fecha</label>
+          <input type="date" id="fFecha" required>
+        </div>
+        <div class="field">
+          <label for="fPrecio">Precio (&euro;)</label>
+          <input type="number" id="fPrecio" min="0" step="0.01" value="0" required>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="fLugar">Lugar</label>
+        <input type="text" id="fLugar" placeholder="Ej: Batzoki Arangoiti - Arangoiti" required>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="fParejas">Número de parejas</label>
+          <input type="number" id="fParejas" min="1" step="1" required>
+        </div>
+        <div class="field">
+          <label for="fRonda">Ronda en la que perdimos</label>
+          <input type="number" id="fRonda" min="1" step="1">
+        </div>
+      </div>
+
+      <div class="check-row">
+        <input type="checkbox" id="fVictoria">
+        <label for="fVictoria" style="margin:0;text-transform:none;font-size:0.92rem;color:var(--ink)">Ganamos el torneo entero</label>
+      </div>
+
+      <div class="field">
+        <label for="fPosicion">Posición</label>
+        <div class="posicion-row">
+          <input type="text" id="fPosicion" placeholder="Ej: 9-16/34">
+          <button type="button" class="btn btn-small" id="btnSugerir">Sugerir</button>
+        </div>
+        <div class="hint" id="posicionHint">La sugerencia usa el tamaño del cuadro de eliminación (potencia de 2) y la ronda perdida. Siempre puedes escribir tu propio valor.</div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="fPremio">Premio en &euro;</label>
+          <input type="number" id="fPremio" min="0" step="0.01" value="0">
+        </div>
+        <div class="field">
+          <label for="fOtrosPremios">Otros premios</label>
+          <input type="text" id="fOtrosPremios" placeholder="Ej: Ardoa, lunch...">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="fAnotaciones">Anotaciones</label>
+        <textarea id="fAnotaciones" placeholder="La anécdota, el drama, la remontada..."></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="btnCancelar">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- Storage: localStorage with in-memory fallback ---------- */
+  var Storage = (function(){
+    var memory = {};
+    var available = true;
+    try {
+      var testKey = "__mus_test__";
+      window.localStorage.setItem(testKey, "1");
+      window.localStorage.removeItem(testKey);
+    } catch (e) {
+      available = false;
+    }
+    return {
+      get: function(key){
+        if (available) {
+          try { return window.localStorage.getItem(key); } catch (e) { available = false; }
+        }
+        return Object.prototype.hasOwnProperty.call(memory, key) ? memory[key] : null;
+      },
+      set: function(key, value){
+        if (available) {
+          try { window.localStorage.setItem(key, value); return; } catch (e) { available = false; }
+        }
+        memory[key] = value;
+      }
+    };
+  })();
+
+  var STORAGE_KEY = "musTorneos.v1";
+
+  /* ---------- Seed data (transcribed + verified against source spreadsheet) ---------- */
+  var SEED = [
+    { fecha:"2024-08-20", precio:0,  lugar:`Sample venue 60`, parejas:128, victoria:false, ronda:1, posicion:"65-128/128", premio:0,  otrosPremios:"", anotaciones:"" },
+    { fecha:"2024-08-22", precio:0,  lugar:`Sample venue 20`, parejas:37, victoria:false, ronda:3, posicion:"9-16/37", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2024-08-31", precio:20, lugar:`Sample venue 24`, parejas:25, victoria:false, ronda:1, posicion:"17-25/25", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2024-09-04", precio:10, lugar:`Sample venue 31`, parejas:40, victoria:false, ronda:1, posicion:"33-40/40", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2024-09-13", precio:10, lugar:`Sample venue 97`, parejas:16, victoria:false, ronda:3, posicion:"3-4/16", premio:10, otrosPremios:"", anotaciones:"" },
+    { fecha:"2024-09-16", precio:0,  lugar:`Sample venue 20`, parejas:85, victoria:false, ronda:2, posicion:"33-64/85", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2024-10-04", precio:10, lugar:`Sample venue 30`, parejas:64, victoria:false, ronda:1, posicion:"33-64/64", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2024-09-29", precio:10, lugar:`Sample venue 43`, parejas:12, victoria:false, ronda:2, posicion:"5-8/12", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2024-10-13", precio:10, lugar:`Sample venue 99`, parejas:48, victoria:false, ronda:5, posicion:"3-4/48", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2024-11-13", precio:12, lugar:`Sample venue 77`, parejas:34, victoria:false, ronda:3, posicion:"9-16/34", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2024-12-27", precio:20, lugar:`Sample venue 41`, parejas:38, victoria:false, ronda:1, posicion:"33-38/38", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-01-24", precio:15, lugar:`Sample venue 76`, parejas:19, victoria:false, ronda:1, posicion:"17-19/19", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-02-12", precio:5,  lugar:`Sample venue 34`, parejas:30, victoria:false, ronda:3, posicion:"5-8/30", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-02-15", precio:22, lugar:`Sample venue 27`, parejas:28, victoria:false, ronda:3, posicion:"5-8/28", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-03-24", precio:0,  lugar:`Sample venue 65`, parejas:50, victoria:false, ronda:1, posicion:"33-50/50", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-04-26", precio:20, lugar:`Sample venue 55`, parejas:10, victoria:false, ronda:4, posicion:"2/10", premio:80, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-07-12", precio:20, lugar:`Sample venue 96`, parejas:20, victoria:false, ronda:1, posicion:"17-20/20", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-07-19", precio:20, lugar:`Sample venue 15`, parejas:20, victoria:false, ronda:3, posicion:"5-8/20", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-08-02", precio:20, lugar:`Sample venue 91`, parejas:62, victoria:false, ronda:1, posicion:"33-62/62", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-08-10", precio:10, lugar:`Sample venue 68`, parejas:9, victoria:false, ronda:4, posicion:"2/9", premio:30, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-08-17", precio:10, lugar:`Sample venue 48`, parejas:30, victoria:false, ronda:5, posicion:"2/30", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-08-19", precio:0,  lugar:`Sample venue 15`, parejas:128, victoria:false, ronda:2, posicion:"33-64/128", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-08-23", precio:20, lugar:`Sample venue 72`, parejas:14, victoria:false, ronda:2, posicion:"5-8/14", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-09-27", precio:22, lugar:`Sample venue 50`, parejas:42, victoria:false, ronda:3, posicion:"9-16/42", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-10-18", precio:30, lugar:`Sample venue 72`, parejas:25, victoria:false, ronda:1, posicion:"17-25/25", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-10-25", precio:0,  lugar:`Sample venue 95`, parejas:36, victoria:false, ronda:2, posicion:"17-32/36", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-12-20", precio:20, lugar:`Sample venue 56`, parejas:36, victoria:false, ronda:2, posicion:"17-32/36", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-12-29", precio:15, lugar:`Sample venue 25`, parejas:48, victoria:false, ronda:5, posicion:"3-4/48", premio:25, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-12-30", precio:20, lugar:`Sample venue 42`, parejas:32, victoria:false, ronda:4, posicion:"3-4/32", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2026-02-28", precio:20, lugar:`Sample venue 93`, parejas:64, victoria:false, ronda:4, posicion:"5-8/64", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2026-04-18", precio:20, lugar:`Sample venue 53`, parejas:84, victoria:false, ronda:2, posicion:"33-64/84", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2026-04-24", precio:0,  lugar:`Sample venue 28`, parejas:32, victoria:false, ronda:3, posicion:"5-8/32", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2026-05-03", precio:20, lugar:`Sample venue 37`, parejas:17, victoria:false, ronda:2, posicion:"9-16/17", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2026-05-23", precio:20, lugar:`Sample venue 82`, parejas:4, victoria:false, ronda:1, posicion:"3-4/4", premio:16, otrosPremios:"", anotaciones:"" },
+    { fecha:"2026-07-04", precio:20, lugar:`Sample venue 11`, parejas:30, victoria:false, ronda:1, posicion:"17-30/30", premio:0, otrosPremios:"", anotaciones:"" }
+  ];
+
+  function makeId(prefix, i){ return prefix + "-" + String(i+1).padStart(2,"0"); }
+
+  function loadTorneos(){
+    var raw = Storage.get(STORAGE_KEY);
+    if (raw) {
+      try {
+        var parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) { /* fall through to seed */ }
+    }
+    return SEED.map(function(t, i){
+      var copy = {};
+      for (var k in t) copy[k] = t[k];
+      copy.id = makeId("seed", i);
+      return copy;
+    });
+  }
+
+  function saveTorneos(){
+    Storage.set(STORAGE_KEY, JSON.stringify(torneos));
+  }
+
+  var torneos = loadTorneos();
+
+  /* ---------- Posición bracket-based suggestion ---------- */
+  function bracketSize(parejas){
+    var b = 1;
+    while (b < parejas) b *= 2;
+    return b;
+  }
+
+  function suggestPosicion(parejas, ronda, victoria){
+    parejas = Number(parejas);
+    if (!parejas || parejas < 1) return "";
+    if (victoria) return "1/" + parejas;
+    ronda = Number(ronda);
+    if (!ronda || ronda < 1) return "";
+    var bracket = bracketSize(parejas);
+    var entering = bracket / Math.pow(2, ronda - 1);
+    if (entering < 2) return "";
+    if (entering === 2) return "2/" + parejas;
+    var low = Math.floor(bracket / Math.pow(2, ronda)) + 1;
+    var high = Math.min(bracket / Math.pow(2, ronda - 1), parejas);
+    return low + "-" + high + "/" + parejas;
+  }
+
+  function isRondaFinal(parejas, ronda){
+    parejas = Number(parejas); ronda = Number(ronda);
+    if (!parejas || !ronda) return false;
+    var bracket = bracketSize(parejas);
+    return (bracket / Math.pow(2, ronda - 1)) === 2;
+  }
+
+  /* ---------- Stats ---------- */
+  function computeStats(list){
+    var gastado = 0, ganado = 0, victorias = 0;
+    for (var i=0;i<list.length;i++){
+      gastado += Number(list[i].precio) || 0;
+      ganado += Number(list[i].premio) || 0;
+      if (list[i].victoria) victorias++;
+    }
+    var balance = ganado - gastado;
+    var torneosCount = list.length;
+    var derrotas = torneosCount - victorias;
+    var winRate = torneosCount ? (victorias / torneosCount * 100) : 0;
+    var roi = gastado > 0 ? (balance / gastado * 100) : null;
+    return {
+      gastado: gastado, ganado: ganado, balance: balance,
+      balanceCabeza: balance / 2, torneosCount: torneosCount,
+      victorias: victorias, derrotas: derrotas, winRate: winRate, roi: roi
+    };
+  }
+
+  function fmtEuro(n){
+    var sign = n < 0 ? "-" : "";
+    var abs = Math.abs(Math.round(n * 100) / 100);
+    var str = abs % 1 === 0 ? String(abs) : abs.toFixed(2);
+    return sign + str + " €";
+  }
+
+  function fmtFechaLarga(iso){
+    var meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+    var parts = iso.split("-");
+    var y = parts[0], m = parseInt(parts[1],10)-1, d = parseInt(parts[2],10);
+    return d + " " + meses[m] + " " + y;
+  }
+
+  var ICONS = {
+    gastado: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a2.5 2.5 0 0 0 0 5h5a2.5 2.5 0 0 1 0 5H7"/></svg>',
+    ganado: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 6v12M9 9h4.5a1.75 1.75 0 1 1 0 3.5H9m0 0h4.5a1.75 1.75 0 1 1 0 3.5H9"/></svg>',
+    balance: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5 8l7-5 7 5M3 8h6l-3 8-3-8zm12 0h6l-3 8-3-8z"/></svg>',
+    torneos: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12v4a6 6 0 0 1-12 0V3z"/><path d="M6 5H3a3 3 0 0 0 3 5M18 5h3a3 3 0 0 1-3 5M12 13v4M9 21h6"/></svg>',
+    victorias: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M9 9V4h6v5a3 3 0 0 1-6 0z"/><path d="M4 5h5v3a5 5 0 0 1-5-5zM20 5h-5v3a5 5 0 0 0 5-5z"/></svg>',
+    derrotas: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4l12 16M18 4L6 20"/></svg>'
+  };
+
+  function renderStats(){
+    var s = computeStats(torneos);
+    var el = document.getElementById("statsGrid");
+    var winCls = s.balance >= 0 ? "pos" : "neg";
+    var cards = [
+      { label:"Dinero gastado", value: fmtEuro(-Math.abs(s.gastado)).replace("-",""), icon:"gastado", cls:"" },
+      { label:"Dinero ganado", value: fmtEuro(s.ganado), icon:"ganado", cls: s.ganado>0 ? "pos" : "" },
+      { label:"Balance total", value: fmtEuro(s.balance), icon:"balance", cls: winCls },
+      { label:"Balance por cabeza", value: fmtEuro(s.balanceCabeza), icon:"balance", cls: winCls },
+      { label:"Torneos jugados", value: String(s.torneosCount), icon:"torneos", cls:"" },
+      { label:"Victorias", value: String(s.victorias), icon:"victorias", cls: s.victorias>0 ? "pos":"" },
+      { label:"Derrotas", value: String(s.derrotas), icon:"derrotas", cls: "" },
+      { label:"Ratio de victorias", value: s.winRate.toFixed(1) + "%", icon:"victorias", cls:"" },
+      { label:"ROI", value: s.roi===null ? "—" : (s.roi>=0?"+":"") + s.roi.toFixed(1) + "%", icon:"balance", cls: s.roi!==null && s.roi>=0 ? "pos":"neg" }
+    ];
+    el.innerHTML = cards.map(function(c){
+      return '<div class="stat-card">' +
+        '<div class="icon">'+ICONS[c.icon]+'</div>' +
+        '<div class="label">'+c.label+'</div>' +
+        '<div class="value '+c.cls+'">'+c.value+'</div>' +
+        '</div>';
+    }).join("");
+  }
+
+  /* ---------- Chart ---------- */
+  var chartState = { points: [], hoverIndex: -1 };
+
+  function getChartData(){
+    var sorted = torneos.slice().sort(function(a,b){ return a.fecha.localeCompare(b.fecha); });
+    var running = 0;
+    return sorted.map(function(t){
+      running += (Number(t.premio)||0) - (Number(t.precio)||0);
+      return { fecha: t.fecha, lugar: t.lugar, balance: running };
+    });
+  }
+
+  function niceStep(range){
+    var raw = range / 4;
+    var pow = Math.pow(10, Math.floor(Math.log10(raw || 1)));
+    var norm = raw / pow;
+    var step;
+    if (norm < 1.5) step = 1;
+    else if (norm < 3) step = 2;
+    else if (norm < 7) step = 5;
+    else step = 10;
+    return step * pow;
+  }
+
+  function drawChart(){
+    var canvas = document.getElementById("balanceChart");
+    var wrap = canvas.parentElement;
+    var dpr = window.devicePixelRatio || 1;
+    var cssW = wrap.clientWidth;
+    var cssH = 200;
+    canvas.width = cssW * dpr;
+    canvas.height = cssH * dpr;
+    canvas.style.width = cssW + "px";
+    canvas.style.height = cssH + "px";
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,cssW,cssH);
+
+    var data = chartState.points;
+    if (!data.length) return;
+
+    var padL = 44, padR = 14, padT = 14, padB = 22;
+    var plotW = cssW - padL - padR;
+    var plotH = cssH - padT - padB;
+
+    var values = data.map(function(d){ return d.balance; });
+    var minV = Math.min(0, Math.min.apply(null, values));
+    var maxV = Math.max(0, Math.max.apply(null, values));
+    if (minV === maxV) { minV -= 10; maxV += 10; }
+    var step = niceStep(maxV - minV);
+    minV = Math.floor(minV / step) * step;
+    maxV = Math.ceil(maxV / step) * step;
+    if (minV === maxV) maxV = minV + step;
+
+    function xAt(i){ return padL + (data.length===1 ? plotW/2 : (i/(data.length-1)) * plotW); }
+    function yAt(v){ return padT + plotH - ((v - minV)/(maxV - minV)) * plotH; }
+
+    // gridlines + y ticks
+    ctx.strokeStyle = "rgba(244,234,210,0.08)";
+    ctx.fillStyle = "#a9c2b2";
+    ctx.font = "10px Mulish, sans-serif";
+    ctx.textBaseline = "middle";
+    for (var v = minV; v <= maxV + 1e-6; v += step){
+      var y = yAt(v);
+      ctx.beginPath();
+      ctx.moveTo(padL, y);
+      ctx.lineTo(padL + plotW, y);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.textAlign = "right";
+      ctx.fillText(Math.round(v), padL - 8, y);
+    }
+
+    // zero baseline emphasized
+    if (minV < 0 && maxV > 0){
+      ctx.strokeStyle = "rgba(244,234,210,0.22)";
+      ctx.beginPath();
+      ctx.moveTo(padL, yAt(0));
+      ctx.lineTo(padL + plotW, yAt(0));
+      ctx.stroke();
+    }
+
+    // area fill (series hue wash)
+    ctx.beginPath();
+    ctx.moveTo(xAt(0), yAt(0));
+    for (var i=0;i<data.length;i++) ctx.lineTo(xAt(i), yAt(data[i].balance));
+    ctx.lineTo(xAt(data.length-1), yAt(0));
+    ctx.closePath();
+    ctx.fillStyle = "rgba(212,175,55,0.12)";
+    ctx.fill();
+
+    // line
+    ctx.beginPath();
+    for (i=0;i<data.length;i++){
+      var px = xAt(i), py = yAt(data[i].balance);
+      if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    }
+    ctx.strokeStyle = "#d4af37";
+    ctx.lineWidth = 2;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.stroke();
+
+    // x-axis labels: first and last date
+    ctx.fillStyle = "#a9c2b2";
+    ctx.textBaseline = "top";
+    ctx.textAlign = "left";
+    ctx.fillText(fmtFechaLarga(data[0].fecha), padL, padT + plotH + 6);
+    ctx.textAlign = "right";
+    ctx.fillText(fmtFechaLarga(data[data.length-1].fecha), padL + plotW, padT + plotH + 6);
+
+    // end dot + direct label
+    var lastX = xAt(data.length-1), lastY = yAt(data[data.length-1].balance);
+    ctx.beginPath();
+    ctx.arc(lastX, lastY, 5, 0, Math.PI*2);
+    ctx.fillStyle = "#d4af37";
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#0d3a26";
+    ctx.stroke();
+
+    // hover crosshair + point highlight
+    if (chartState.hoverIndex >= 0 && chartState.hoverIndex < data.length){
+      var hi = chartState.hoverIndex;
+      var hx = xAt(hi), hy = yAt(data[hi].balance);
+      ctx.beginPath();
+      ctx.moveTo(hx, padT);
+      ctx.lineTo(hx, padT + plotH);
+      ctx.strokeStyle = "rgba(244,234,210,0.35)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(hx, hy, 5, 0, Math.PI*2);
+      ctx.fillStyle = "#f0d78c";
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#0d3a26";
+      ctx.stroke();
+    }
+
+    chartState._geom = { padL:padL, plotW:plotW, xAt:xAt };
+  }
+
+  function renderChart(){
+    chartState.points = getChartData();
+    var sub = document.getElementById("chartSub");
+    if (!chartState.points.length){
+      sub.textContent = "Sin torneos todavía";
+    } else {
+      sub.textContent = "Suma de premios menos precios, en orden cronológico";
+    }
+    drawChart();
+  }
+
+  function setupChartInteraction(){
+    var canvas = document.getElementById("balanceChart");
+    var tooltip = document.getElementById("chartTooltip");
+
+    function handleMove(clientX){
+      var rect = canvas.getBoundingClientRect();
+      var x = clientX - rect.left;
+      var data = chartState.points;
+      if (!data.length || !chartState._geom) return;
+      var g = chartState._geom;
+      var rel = (x - g.padL) / g.plotW;
+      var idx = Math.round(rel * (data.length - 1));
+      idx = Math.max(0, Math.min(data.length - 1, idx));
+      chartState.hoverIndex = idx;
+      drawChart();
+      var px = g.xAt(idx);
+      tooltip.style.left = px + "px";
+      tooltip.style.top = "10px";
+      tooltip.innerHTML = '<span class="t-label">'+fmtFechaLarga(data[idx].fecha)+'</span><strong>'+fmtEuro(data[idx].balance)+'</strong>';
+      tooltip.style.opacity = "1";
+    }
+
+    canvas.addEventListener("pointermove", function(e){ handleMove(e.clientX); });
+    canvas.addEventListener("pointerleave", function(){
+      chartState.hoverIndex = -1;
+      tooltip.style.opacity = "0";
+      drawChart();
+    });
+
+    window.addEventListener("resize", function(){ drawChart(); });
+  }
+
+  /* ---------- List rendering ---------- */
+  function renderList(){
+    var el = document.getElementById("torneoList");
+    var countEl = document.getElementById("listCount");
+    var sorted = torneos.slice().sort(function(a,b){ return b.fecha.localeCompare(a.fecha); });
+    countEl.textContent = "Torneos (" + sorted.length + ")";
+
+    if (!sorted.length){
+      el.innerHTML = '<div class="panel empty">Todavía no hay torneos. Añade el primero.</div>';
+      return;
+    }
+
+    el.innerHTML = sorted.map(function(t){
+      var badge = t.victoria
+        ? '<span class="badge win">Ganado</span>'
+        : '<span class="badge lose">Ronda ' + (t.ronda||"?") + (isRondaFinal(t.parejas,t.ronda) ? " (final)" : "") + '</span>';
+
+      var chips = "";
+      if (Number(t.premio) > 0) chips += '<span class="chip">' + fmtEuro(Number(t.premio)) + '</span>';
+      if (t.otrosPremios) chips += '<span class="chip">' + escapeHtml(t.otrosPremios) + '</span>';
+
+      var anot = t.anotaciones ? '<div class="anotaciones">“' + escapeHtml(t.anotaciones) + '”</div>' : "";
+
+      return '<div class="panel torneo-card" data-id="'+t.id+'">' +
+        '<div class="row1">' +
+          '<div><div class="fecha">'+fmtFechaLarga(t.fecha)+'</div><div class="lugar">'+escapeHtml(t.lugar)+'</div></div>' +
+          badge +
+        '</div>' +
+        '<div class="meta-row">' +
+          '<span><b>'+t.parejas+'</b> parejas</span>' +
+          '<span>Pos. <b>'+escapeHtml(t.posicion||"—")+'</b></span>' +
+          '<span>Precio <b>'+fmtEuro(Number(t.precio)||0)+'</b></span>' +
+        '</div>' +
+        (chips ? '<div class="chips">'+chips+'</div>' : "") +
+        anot +
+        '<div class="card-actions">' +
+          '<button class="btn btn-small" data-action="edit" data-id="'+t.id+'">Editar</button>' +
+          '<button class="btn btn-small btn-danger" data-action="delete" data-id="'+t.id+'">Borrar</button>' +
+        '</div>' +
+      '</div>';
+    }).join("");
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, function(c){
+      return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c];
+    });
+  }
+
+  function renderAll(){
+    renderStats();
+    renderChart();
+    renderList();
+  }
+
+  /* ---------- Form / modal ---------- */
+  var overlay = document.getElementById("modalOverlay");
+  var form = document.getElementById("torneoForm");
+  var fId = document.getElementById("fId");
+  var fFecha = document.getElementById("fFecha");
+  var fPrecio = document.getElementById("fPrecio");
+  var fLugar = document.getElementById("fLugar");
+  var fParejas = document.getElementById("fParejas");
+  var fRonda = document.getElementById("fRonda");
+  var fVictoria = document.getElementById("fVictoria");
+  var fPosicion = document.getElementById("fPosicion");
+  var fPremio = document.getElementById("fPremio");
+  var fOtrosPremios = document.getElementById("fOtrosPremios");
+  var fAnotaciones = document.getElementById("fAnotaciones");
+  var modalTitle = document.getElementById("modalTitle");
+
+  function openForm(torneo){
+    form.reset();
+    if (torneo){
+      modalTitle.textContent = "Editar torneo";
+      fId.value = torneo.id;
+      fFecha.value = torneo.fecha;
+      fPrecio.value = torneo.precio;
+      fLugar.value = torneo.lugar;
+      fParejas.value = torneo.parejas;
+      fRonda.value = torneo.ronda || "";
+      fVictoria.checked = !!torneo.victoria;
+      fPosicion.value = torneo.posicion || "";
+      fPremio.value = torneo.premio;
+      fOtrosPremios.value = torneo.otrosPremios || "";
+      fAnotaciones.value = torneo.anotaciones || "";
+    } else {
+      modalTitle.textContent = "Nuevo torneo";
+      fId.value = "";
+      fFecha.value = new Date().toISOString().slice(0,10);
+      fPrecio.value = 0;
+      fPremio.value = 0;
+    }
+    updateRondaState();
+    overlay.classList.add("open");
+  }
+
+  function closeForm(){
+    overlay.classList.remove("open");
+  }
+
+  function updateRondaState(){
+    var disabled = fVictoria.checked;
+    fRonda.disabled = disabled;
+    fRonda.parentElement.style.opacity = disabled ? "0.45" : "1";
+  }
+
+  fVictoria.addEventListener("change", updateRondaState);
+
+  document.getElementById("btnNuevo").addEventListener("click", function(){ openForm(null); });
+  document.getElementById("btnCancelar").addEventListener("click", closeForm);
+  overlay.addEventListener("click", function(e){ if (e.target === overlay) closeForm(); });
+
+  document.getElementById("btnSugerir").addEventListener("click", function(){
+    var s = suggestPosicion(fParejas.value, fRonda.value, fVictoria.checked);
+    if (s) fPosicion.value = s;
+  });
+
+  form.addEventListener("submit", function(e){
+    e.preventDefault();
+    var id = fId.value;
+    var data = {
+      fecha: fFecha.value,
+      precio: parseFloat(fPrecio.value) || 0,
+      lugar: fLugar.value.trim(),
+      parejas: parseInt(fParejas.value,10) || 0,
+      victoria: fVictoria.checked,
+      ronda: fVictoria.checked ? null : (parseInt(fRonda.value,10) || null),
+      posicion: fPosicion.value.trim(),
+      premio: parseFloat(fPremio.value) || 0,
+      otrosPremios: fOtrosPremios.value.trim(),
+      anotaciones: fAnotaciones.value.trim()
+    };
+    if (id){
+      var idx = torneos.findIndex(function(t){ return t.id === id; });
+      if (idx >= 0) torneos[idx] = Object.assign({id:id}, data);
+    } else {
+      data.id = "t" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+      torneos.push(data);
+    }
+    saveTorneos();
+    closeForm();
+    renderAll();
+  });
+
+  document.getElementById("torneoList").addEventListener("click", function(e){
+    var btn = e.target.closest("button[data-action]");
+    if (!btn) return;
+    var id = btn.getAttribute("data-id");
+    var action = btn.getAttribute("data-action");
+    var torneo = torneos.find(function(t){ return t.id === id; });
+    if (!torneo) return;
+    if (action === "edit"){
+      openForm(torneo);
+    } else if (action === "delete"){
+      if (window.confirm("¿Seguro que quieres borrar este torneo? Esta acción no se puede deshacer.")){
+        torneos = torneos.filter(function(t){ return t.id !== id; });
+        saveTorneos();
+        renderAll();
+      }
+    }
+  });
+
+  /* ---------- Init ---------- */
+  setupChartInteraction();
+  renderAll();
+
+})();
+</script>
+</body>
+</html>
