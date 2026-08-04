@@ -896,7 +896,10 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
 
   function doSignIn(){
     var provider = new GoogleAuthProvider();
-    signInWithRedirect(auth, provider);
+    showGate("Redirigiendo a Google...", false, false);
+    signInWithRedirect(auth, provider).catch(function(err){
+      showGate("Error al iniciar sesión (" + err.code + "): " + err.message, true, false);
+    });
   }
 
   function doSignOut(){
@@ -911,7 +914,7 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
   setupChartInteraction();
 
   getRedirectResult(auth).catch(function(err){
-    showGate("Error al iniciar sesión: " + err.message, true, false);
+    showGate("Error al iniciar sesión (" + err.code + "): " + err.message, true, false);
   });
 
   onAuthStateChanged(auth, function(user){
