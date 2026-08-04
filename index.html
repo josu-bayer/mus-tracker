@@ -319,7 +319,7 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js";
   import {
-    getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult,
+    getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
     onAuthStateChanged, signOut
   } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
   import {
@@ -896,8 +896,15 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
 
   function doSignIn(){
     var provider = new GoogleAuthProvider();
-    showGate("Redirigiendo a Google...", false, false);
-    signInWithRedirect(auth, provider).catch(function(err){
+    signInWithPopup(auth, provider).catch(function(err){
+      if (err.code === "auth/operation-not-supported-in-this-environment" || err.code === "auth/popup-blocked"){
+        showGate("Abriendo Google...", false, false);
+        signInWithRedirect(auth, provider).catch(function(err2){
+          showGate("Error al iniciar sesión (" + err2.code + "): " + err2.message, true, false);
+        });
+        return;
+      }
+      if (err.code === "auth/cancelled-popup-request" || err.code === "auth/popup-closed-by-user") return;
       showGate("Error al iniciar sesión (" + err.code + "): " + err.message, true, false);
     });
   }
