@@ -302,13 +302,19 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
             <option value="Gipuzkoa">Gipuzkoa</option>
             <option value="Araba">Araba</option>
             <option value="Nafarroa">Nafarroa</option>
-            <option value="Otro">Otro</option>
+            <option value="Otro">Otro...</option>
           </select>
         </div>
         <div class="field">
           <label for="fLocalidad">Localidad</label>
-          <input type="text" id="fLocalidad" placeholder="Ej: Bilbao">
+          <input type="text" id="fLocalidad" list="localidadList" placeholder="Ej: Bilbao" autocomplete="off">
+          <datalist id="localidadList"></datalist>
         </div>
+      </div>
+
+      <div class="field" id="fProvinciaOtroWrap" style="display:none">
+        <label for="fProvinciaOtro">Nombre de la provincia</label>
+        <input type="text" id="fProvinciaOtro" placeholder="Ej: Cantabria">
       </div>
 
       <div class="field-row">
@@ -422,7 +428,6 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
 
   var torneos = [];
   var unsubscribeSnapshot = null;
-  var PROVINCIAS = ["Bizkaia", "Gipuzkoa", "Araba", "Nafarroa", "Otro"];
   var statsProvinceFilter = "";
 
   /* ---------- Firestore data layer ---------- */
@@ -721,9 +726,11 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
 
   function renderProvinceFilter(){
     var el = document.getElementById("provinceFilter");
-    var present = PROVINCIAS.filter(function(p){
-      return torneos.some(function(t){ return t.provincia === p; });
+    var present = [];
+    torneos.forEach(function(t){
+      if (t.provincia && present.indexOf(t.provincia) === -1) present.push(t.provincia);
     });
+    present.sort(function(a,b){ return a.localeCompare(b); });
     var pills = [{ value:"", label:"Todas" }].concat(present.map(function(p){ return { value:p, label:p }; }));
     el.innerHTML = pills.map(function(p){
       var active = p.value === statsProvinceFilter ? " active" : "";
@@ -866,11 +873,22 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
     });
   }
 
+  function renderLocalidadList(){
+    var el = document.getElementById("localidadList");
+    var present = [];
+    torneos.forEach(function(t){
+      if (t.localidad && present.indexOf(t.localidad) === -1) present.push(t.localidad);
+    });
+    present.sort(function(a,b){ return a.localeCompare(b); });
+    el.innerHTML = present.map(function(loc){ return '<option value="' + escapeHtml(loc) + '"></option>'; }).join("");
+  }
+
   function renderAll(){
     renderStats();
     renderChart();
     renderProvinceFilter();
     renderProvinceBreakdown();
+    renderLocalidadList();
     renderList();
   }
 
@@ -882,7 +900,10 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
   var fPrecio = document.getElementById("fPrecio");
   var fLugar = document.getElementById("fLugar");
   var fProvincia = document.getElementById("fProvincia");
+  var fProvinciaOtroWrap = document.getElementById("fProvinciaOtroWrap");
+  var fProvinciaOtro = document.getElementById("fProvinciaOtro");
   var fLocalidad = document.getElementById("fLocalidad");
+  var PROVINCIAS_FIJAS = ["Bizkaia", "Gipuzkoa", "Araba", "Nafarroa"];
   var fParejas = document.getElementById("fParejas");
   var fRonda = document.getElementById("fRonda");
   var fVictoria = document.getElementById("fVictoria");
@@ -900,7 +921,13 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
       fFecha.value = torneo.fecha;
       fPrecio.value = torneo.precio;
       fLugar.value = torneo.lugar;
-      fProvincia.value = torneo.provincia || "";
+      if (torneo.provincia && PROVINCIAS_FIJAS.indexOf(torneo.provincia) === -1){
+        fProvincia.value = "Otro";
+        fProvinciaOtro.value = torneo.provincia;
+      } else {
+        fProvincia.value = torneo.provincia || "";
+        fProvinciaOtro.value = "";
+      }
       fLocalidad.value = torneo.localidad || "";
       fParejas.value = torneo.parejas;
       fRonda.value = torneo.ronda || "";
@@ -917,6 +944,7 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
       fPremio.value = 0;
     }
     updateRondaState();
+    updateProvinciaOtroState();
     overlay.classList.add("open");
   }
 
@@ -930,7 +958,12 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
     fRonda.parentElement.style.opacity = disabled ? "0.45" : "1";
   }
 
+  function updateProvinciaOtroState(){
+    fProvinciaOtroWrap.style.display = fProvincia.value === "Otro" ? "" : "none";
+  }
+
   fVictoria.addEventListener("change", updateRondaState);
+  fProvincia.addEventListener("change", updateProvinciaOtroState);
 
   document.getElementById("btnNuevo").addEventListener("click", function(){ openForm(null); });
   document.getElementById("btnCancelar").addEventListener("click", closeForm);
@@ -944,11 +977,12 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
   form.addEventListener("submit", function(e){
     e.preventDefault();
     var id = fId.value;
+    var provinciaVal = fProvincia.value === "Otro" ? fProvinciaOtro.value.trim() : fProvincia.value;
     var data = {
       fecha: fFecha.value,
       precio: parseFloat(fPrecio.value) || 0,
       lugar: fLugar.value.trim(),
-      provincia: fProvincia.value,
+      provincia: provinciaVal,
       localidad: fLocalidad.value.trim(),
       parejas: parseInt(fParejas.value,10) || 0,
       victoria: fVictoria.checked,
