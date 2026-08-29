@@ -748,11 +748,11 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
 
   function renderProvinceFilter(){
     var el = document.getElementById("provinceFilter");
-    var counts = {};
+    var balances = {};
     torneos.forEach(function(t){
-      if (t.provincia) counts[t.provincia] = (counts[t.provincia] || 0) + 1;
+      if (t.provincia) balances[t.provincia] = (balances[t.provincia] || 0) + ((Number(t.premio)||0) - (Number(t.precio)||0));
     });
-    var present = Object.keys(counts).sort(function(a,b){ return counts[b] - counts[a]; });
+    var present = Object.keys(balances).sort(function(a,b){ return balances[b] - balances[a]; });
     var pills = [{ value:"", label:"Todas" }].concat(present.map(function(p){ return { value:p, label:p }; }));
     el.innerHTML = pills.map(function(p){
       var active = p.value === statsProvinceFilter ? " active" : "";
@@ -814,7 +814,13 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
       if (b === "Ganado") return 1;
       if (a === "Sin especificar") return 1;
       if (b === "Sin especificar") return -1;
-      return parseInt(a.replace(/\D/g,""),10) - parseInt(b.replace(/\D/g,""),10);
+      var ra = parseInt(a.replace(/\D/g,""),10);
+      var rb = parseInt(b.replace(/\D/g,""),10);
+      if (ra !== rb) return rb - ra;
+      var aFinal = a.indexOf("(final)") !== -1;
+      var bFinal = b.indexOf("(final)") !== -1;
+      if (aFinal !== bFinal) return aFinal ? -1 : 1;
+      return 0;
     });
   }
 
@@ -827,12 +833,8 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
     return parseInt(m[1],10) / total;
   }
 
-  function torneosSinceLastPremio(list){
-    var sorted = list.slice().sort(function(a,b){ return b.fecha.localeCompare(a.fecha); });
-    for (var i=0;i<sorted.length;i++){
-      if (Number(sorted[i].premio) > 0) return i;
-    }
-    return sorted.length;
+  function countTorneosSinPremio(list){
+    return list.filter(function(t){ return !(Number(t.premio) > 0); }).length;
   }
 
   function renderHighlights(){
@@ -851,13 +853,13 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
     var percentiles = list.map(function(t){ return parsePosicionPercentile(t.posicion); }).filter(function(p){ return p !== null; });
     var avgPercentile = percentiles.length ? percentiles.reduce(function(s,p){ return s+p; }, 0) / percentiles.length : null;
 
-    var sinceLast = torneosSinceLastPremio(list);
+    var sinPremio = countTorneosSinPremio(list);
 
     var rows = [
       { label:"Mejor torneo", value: escapeHtml(best.t.lugar) + " · " + fmtEuro(best.bal) },
       { label:"Peor torneo", value: escapeHtml(worst.t.lugar) + " · " + fmtEuro(worst.bal) },
       { label:"Torneo más grande jugado", value: escapeHtml(biggest.lugar) + " · " + biggest.parejas + " parejas" },
-      { label:"Torneos sin premio en metálico", value: String(sinceLast) },
+      { label:"Torneos sin premio en metálico", value: String(sinPremio) },
       { label:"Percentil medio de eliminación", value: avgPercentile===null ? "—" : Math.round(avgPercentile*100) + "% del cuadro" }
     ];
     el.innerHTML = rows.map(function(r){
