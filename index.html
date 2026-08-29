@@ -154,6 +154,13 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
 }
 .field select:invalid{color:var(--muted)}
 
+.search-box{margin-bottom:12px}
+.search-box input{
+  width:100%;padding:10px 14px;border-radius:12px;border:1px solid var(--line);
+  background:rgba(0,0,0,0.18);color:var(--ink);font-family:inherit;font-size:0.9rem;
+}
+.search-box input::placeholder{color:var(--muted)}
+
 .tabs{display:flex;gap:8px;margin-bottom:16px}
 .tab-btn{
   flex:1;font-family:'Mulish',sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;
@@ -243,6 +250,10 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
   </nav>
 
   <section class="tab-panel active" id="panelTorneos">
+    <div class="search-box">
+      <input type="search" id="searchTorneos" placeholder="Buscar por localidad, provincia o torneo..." autocomplete="off">
+    </div>
+
     <div class="toolbar">
       <h3 id="listCount">Torneos</h3>
       <button class="btn btn-primary" id="btnNuevo" type="button">+ Nuevo torneo</button>
@@ -451,6 +462,19 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
   var torneos = [];
   var unsubscribeSnapshot = null;
   var statsProvinceFilter = "";
+  var searchQuery = "";
+
+  function normalizeSearch(str){
+    return String(str || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function matchesSearch(t, query){
+    if (!query) return true;
+    var q = normalizeSearch(query);
+    return normalizeSearch(t.lugar).indexOf(q) !== -1 ||
+      normalizeSearch(t.provincia).indexOf(q) !== -1 ||
+      normalizeSearch(t.localidad).indexOf(q) !== -1;
+  }
 
   /* ---------- Firestore data layer ---------- */
   function ensureSeeded(){
@@ -793,14 +817,22 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
     }).join("");
   }
 
+  function sortByBalanceDesc(buckets){
+    return function(a, b){
+      var balA = buckets[a].ganado - buckets[a].gastado;
+      var balB = buckets[b].ganado - buckets[b].gastado;
+      return balB - balA;
+    };
+  }
+
   function renderProvinceBreakdown(){
     var buckets = computeBreakdownBuckets(torneos, function(t){ return t.provincia; }, "Sin especificar");
-    renderBreakdownBars("provinceBreakdown", buckets);
+    renderBreakdownBars("provinceBreakdown", buckets, sortByBalanceDesc(buckets));
   }
 
   function renderLocalidadBreakdown(){
     var buckets = computeBreakdownBuckets(torneos, function(t){ return t.localidad; }, "Sin especificar");
-    renderBreakdownBars("localidadBreakdown", buckets);
+    renderBreakdownBars("localidadBreakdown", buckets, sortByBalanceDesc(buckets));
   }
 
   function renderRondaBreakdown(){
@@ -911,11 +943,16 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
   function renderList(){
     var el = document.getElementById("torneoList");
     var countEl = document.getElementById("listCount");
-    var sorted = torneos.slice().sort(function(a,b){ return b.fecha.localeCompare(a.fecha); });
-    countEl.textContent = "Torneos (" + sorted.length + ")";
+    var filtered = torneos.filter(function(t){ return matchesSearch(t, searchQuery); });
+    var sorted = filtered.slice().sort(function(a,b){ return b.fecha.localeCompare(a.fecha); });
+    countEl.textContent = searchQuery
+      ? "Torneos (" + sorted.length + " de " + torneos.length + ")"
+      : "Torneos (" + sorted.length + ")";
 
     if (!sorted.length){
-      el.innerHTML = '<div class="panel empty">Todavía no hay torneos. Añade el primero.</div>';
+      el.innerHTML = '<div class="panel empty">' +
+        (searchQuery ? "Ningún torneo coincide con la búsqueda." : "Todavía no hay torneos. Añade el primero.") +
+        '</div>';
       return;
     }
 
@@ -1075,6 +1112,11 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
 
   fVictoria.addEventListener("change", updateRondaState);
   fProvincia.addEventListener("change", function(){ updateProvinciaOtroState(true); });
+
+  document.getElementById("searchTorneos").addEventListener("input", function(e){
+    searchQuery = e.target.value;
+    renderList();
+  });
 
   document.getElementById("btnNuevo").addEventListener("click", function(){ openForm(null); });
   document.getElementById("btnCancelar").addEventListener("click", closeForm);
