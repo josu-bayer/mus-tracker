@@ -147,6 +147,50 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
 .modal-actions{display:flex;gap:10px;margin-top:18px}
 .modal-actions .btn{flex:1;text-align:center}
 
+.field select{
+  width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);
+  background:rgba(0,0,0,0.18);color:var(--ink);font-family:inherit;font-size:0.95rem;
+  appearance:none;-webkit-appearance:none;
+}
+.field select:invalid{color:var(--muted)}
+
+.tabs{display:flex;gap:8px;margin-bottom:16px}
+.tab-btn{
+  flex:1;font-family:'Mulish',sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;
+  border:1px solid var(--line);border-radius:12px;padding:10px 12px;color:var(--muted);
+  background:rgba(255,255,255,0.02);text-align:center;transition:background 0.15s ease, color 0.15s ease;
+}
+.tab-btn.active{background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:#12240f;border-color:transparent}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+.province-filter{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.pill{
+  font-family:'Mulish',sans-serif;font-weight:700;font-size:0.76rem;cursor:pointer;
+  border:1px solid var(--line);border-radius:99px;padding:6px 13px;color:var(--muted);
+  background:rgba(255,255,255,0.02);
+}
+.pill.active{background:rgba(212,175,55,0.18);color:var(--gold-bright);border-color:var(--gold)}
+
+.province-card{padding:16px 14px;margin-bottom:16px}
+.province-card h2{font-size:0.95rem;color:var(--gold-bright);margin-bottom:12px}
+.province-bar-row{margin-bottom:10px}
+.province-bar-row:last-child{margin-bottom:0}
+.province-bar-label{display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px}
+.province-bar-label .name{color:var(--ink);font-weight:700}
+.province-bar-label .meta{color:var(--muted)}
+.province-bar-track{height:8px;border-radius:99px;background:rgba(255,255,255,0.06);overflow:hidden}
+.province-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-bright));border-radius:99px}
+
+.group-header{
+  position:sticky;top:0;z-index:3;margin:18px 0 10px;padding:7px 12px;
+  background:var(--felt-0);border:1px solid var(--line);border-radius:10px;
+  font-family:'Cinzel',Georgia,serif;font-size:0.82rem;color:var(--gold-bright);
+  text-transform:capitalize;letter-spacing:0.02em;
+}
+.torneo-list .group-header:first-child{margin-top:0}
+.locChip{color:var(--muted)}
+
 @media (min-width:520px){
   .stat-card.wide{grid-column:auto}
 }
@@ -178,23 +222,39 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
     </div>
   </header>
 
-  <section class="stats-grid" id="statsGrid" aria-label="Estadísticas"></section>
+  <nav class="tabs" role="tablist">
+    <button class="tab-btn active" id="tabBtnTorneos" data-tab="torneos" type="button" role="tab">Torneos</button>
+    <button class="tab-btn" id="tabBtnStats" data-tab="stats" type="button" role="tab">Estadísticas</button>
+  </nav>
 
-  <section class="panel chart-card">
-    <h2>Balance acumulado</h2>
-    <div class="sub" id="chartSub">Suma de premios menos precios, en orden cronológico</div>
-    <div class="chart-wrap">
-      <canvas id="balanceChart"></canvas>
-      <div class="tooltip" id="chartTooltip"></div>
+  <section class="tab-panel active" id="panelTorneos">
+    <div class="toolbar">
+      <h3 id="listCount">Torneos</h3>
+      <button class="btn btn-primary" id="btnNuevo" type="button">+ Nuevo torneo</button>
     </div>
+
+    <section class="torneo-list" id="torneoList" aria-label="Lista de torneos"></section>
   </section>
 
-  <div class="toolbar">
-    <h3 id="listCount">Torneos</h3>
-    <button class="btn btn-primary" id="btnNuevo" type="button">+ Nuevo torneo</button>
-  </div>
+  <section class="tab-panel" id="panelStats">
+    <div class="province-filter" id="provinceFilter"></div>
 
-  <section class="torneo-list" id="torneoList" aria-label="Lista de torneos"></section>
+    <section class="stats-grid" id="statsGrid" aria-label="Estadísticas"></section>
+
+    <section class="panel chart-card">
+      <h2>Balance acumulado</h2>
+      <div class="sub" id="chartSub">Suma de premios menos precios, en orden cronológico</div>
+      <div class="chart-wrap">
+        <canvas id="balanceChart"></canvas>
+        <div class="tooltip" id="chartTooltip"></div>
+      </div>
+    </section>
+
+    <section class="panel province-card">
+      <h2>Torneos por provincia</h2>
+      <div id="provinceBreakdown"></div>
+    </section>
+  </section>
 
   <footer>
     Datos sincronizados en la nube (Firebase). Cualquiera con este enlace puede verlos y editarlos.<br>
@@ -221,6 +281,24 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
       <div class="field">
         <label for="fLugar">Lugar</label>
         <input type="text" id="fLugar" placeholder="Ej: Batzoki Arangoiti - Arangoiti" required>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="fProvincia">Provincia</label>
+          <select id="fProvincia">
+            <option value="">Sin especificar</option>
+            <option value="Bizkaia">Bizkaia</option>
+            <option value="Gipuzkoa">Gipuzkoa</option>
+            <option value="Araba">Araba</option>
+            <option value="Nafarroa">Nafarroa</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="fLocalidad">Localidad</label>
+          <input type="text" id="fLocalidad" placeholder="Ej: Bilbao">
+        </div>
       </div>
 
       <div class="field-row">
@@ -295,45 +373,47 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
 
   /* ---------- Seed data (transcribed + verified against source spreadsheet) ---------- */
   var SEED = [
-    { fecha:"2024-08-20", precio:0,  lugar:`Sample venue 60`, parejas:128, victoria:false, ronda:1, posicion:"65-128/128", premio:0,  otrosPremios:"", anotaciones:"" },
-    { fecha:"2024-08-22", precio:0,  lugar:`Sample venue 20`, parejas:37, victoria:false, ronda:3, posicion:"9-16/37", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2024-08-31", precio:20, lugar:`Sample venue 24`, parejas:25, victoria:false, ronda:1, posicion:"17-25/25", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2024-09-04", precio:10, lugar:`Sample venue 31`, parejas:40, victoria:false, ronda:1, posicion:"33-40/40", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2024-09-13", precio:10, lugar:`Sample venue 97`, parejas:16, victoria:false, ronda:3, posicion:"3-4/16", premio:10, otrosPremios:"", anotaciones:"" },
-    { fecha:"2024-09-16", precio:0,  lugar:`Sample venue 20`, parejas:85, victoria:false, ronda:2, posicion:"33-64/85", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2024-10-04", precio:10, lugar:`Sample venue 30`, parejas:64, victoria:false, ronda:1, posicion:"33-64/64", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2024-09-29", precio:10, lugar:`Sample venue 43`, parejas:12, victoria:false, ronda:2, posicion:"5-8/12", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2024-10-13", precio:10, lugar:`Sample venue 99`, parejas:48, victoria:false, ronda:5, posicion:"3-4/48", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2024-11-13", precio:12, lugar:`Sample venue 77`, parejas:34, victoria:false, ronda:3, posicion:"9-16/34", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2024-12-27", precio:20, lugar:`Sample venue 41`, parejas:38, victoria:false, ronda:1, posicion:"33-38/38", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2025-01-24", precio:15, lugar:`Sample venue 76`, parejas:19, victoria:false, ronda:1, posicion:"17-19/19", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2025-02-12", precio:5,  lugar:`Sample venue 34`, parejas:30, victoria:false, ronda:3, posicion:"5-8/30", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2025-02-15", precio:22, lugar:`Sample venue 27`, parejas:28, victoria:false, ronda:3, posicion:"5-8/28", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2025-03-24", precio:0,  lugar:`Sample venue 65`, parejas:50, victoria:false, ronda:1, posicion:"33-50/50", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2025-04-26", precio:20, lugar:`Sample venue 55`, parejas:10, victoria:false, ronda:4, posicion:"2/10", premio:80, otrosPremios:"", anotaciones:"" },
-    { fecha:"2025-07-12", precio:20, lugar:`Sample venue 96`, parejas:20, victoria:false, ronda:1, posicion:"17-20/20", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2025-07-19", precio:20, lugar:`Sample venue 15`, parejas:20, victoria:false, ronda:3, posicion:"5-8/20", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2025-08-02", precio:20, lugar:`Sample venue 91`, parejas:62, victoria:false, ronda:1, posicion:"33-62/62", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2025-08-10", precio:10, lugar:`Sample venue 68`, parejas:9, victoria:false, ronda:4, posicion:"2/9", premio:30, otrosPremios:"", anotaciones:"" },
-    { fecha:"2025-08-17", precio:10, lugar:`Sample venue 48`, parejas:30, victoria:false, ronda:5, posicion:"2/30", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2025-08-19", precio:0,  lugar:`Sample venue 15`, parejas:128, victoria:false, ronda:2, posicion:"33-64/128", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2025-08-23", precio:20, lugar:`Sample venue 72`, parejas:14, victoria:false, ronda:2, posicion:"5-8/14", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2025-09-27", precio:22, lugar:`Sample venue 50`, parejas:42, victoria:false, ronda:3, posicion:"9-16/42", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2025-10-18", precio:30, lugar:`Sample venue 72`, parejas:25, victoria:false, ronda:1, posicion:"17-25/25", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2025-10-25", precio:0,  lugar:`Sample venue 95`, parejas:36, victoria:false, ronda:2, posicion:"17-32/36", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2025-12-20", precio:20, lugar:`Sample venue 56`, parejas:36, victoria:false, ronda:2, posicion:"17-32/36", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2025-12-29", precio:15, lugar:`Sample venue 25`, parejas:48, victoria:false, ronda:5, posicion:"3-4/48", premio:25, otrosPremios:"", anotaciones:"" },
-    { fecha:"2025-12-30", precio:20, lugar:`Sample venue 42`, parejas:32, victoria:false, ronda:4, posicion:"3-4/32", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2026-02-28", precio:20, lugar:`Sample venue 93`, parejas:64, victoria:false, ronda:4, posicion:"5-8/64", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2026-04-18", precio:20, lugar:`Sample venue 53`, parejas:84, victoria:false, ronda:2, posicion:"33-64/84", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2026-04-24", precio:0,  lugar:`Sample venue 28`, parejas:32, victoria:false, ronda:3, posicion:"5-8/32", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2026-05-03", precio:20, lugar:`Sample venue 37`, parejas:17, victoria:false, ronda:2, posicion:"9-16/17", premio:0, otrosPremios:"", anotaciones:"" },
-    { fecha:"2026-05-23", precio:20, lugar:`Sample venue 82`, parejas:4, victoria:false, ronda:1, posicion:"3-4/4", premio:16, otrosPremios:"", anotaciones:"" },
-    { fecha:"2026-07-04", precio:20, lugar:`Sample venue 11`, parejas:30, victoria:false, ronda:1, posicion:"17-30/30", premio:0, otrosPremios:"", anotaciones:"" }
+    { fecha:"2024-08-20", precio:0,  lugar:`Sample venue 67`, provincia:"", localidad:"", parejas:128, victoria:false, ronda:1, posicion:"65-128/128", premio:0,  otrosPremios:"", anotaciones:"" },
+    { fecha:"2024-08-22", precio:0,  lugar:`Sample venue 52`, provincia:"", localidad:"", parejas:37, victoria:false, ronda:3, posicion:"9-16/37", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2024-08-31", precio:20, lugar:`Sample venue 80`, provincia:"", localidad:"", parejas:25, victoria:false, ronda:1, posicion:"17-25/25", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2024-09-04", precio:10, lugar:`Sample venue 89`, provincia:"", localidad:"", parejas:40, victoria:false, ronda:1, posicion:"33-40/40", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2024-09-13", precio:10, lugar:`Sample venue 96`, provincia:"", localidad:"", parejas:16, victoria:false, ronda:3, posicion:"3-4/16", premio:10, otrosPremios:"", anotaciones:"" },
+    { fecha:"2024-09-16", precio:0,  lugar:`Sample venue 32`, provincia:"", localidad:"", parejas:85, victoria:false, ronda:2, posicion:"33-64/85", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2024-10-04", precio:10, lugar:`Sample venue 70`, provincia:"", localidad:"", parejas:64, victoria:false, ronda:1, posicion:"33-64/64", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2024-09-29", precio:10, lugar:`Sample venue 61`, provincia:"", localidad:"", parejas:12, victoria:false, ronda:2, posicion:"5-8/12", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2024-10-13", precio:10, lugar:`Sample venue 32`, provincia:"", localidad:"", parejas:48, victoria:false, ronda:5, posicion:"3-4/48", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2024-11-13", precio:12, lugar:`Sample venue 39`, provincia:"", localidad:"", parejas:34, victoria:false, ronda:3, posicion:"9-16/34", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2024-12-27", precio:20, lugar:`Sample venue 82`, provincia:"", localidad:"", parejas:38, victoria:false, ronda:1, posicion:"33-38/38", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-01-24", precio:15, lugar:`Sample venue 32`, provincia:"", localidad:"", parejas:19, victoria:false, ronda:1, posicion:"17-19/19", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-02-12", precio:5,  lugar:`Sample venue 25`, provincia:"", localidad:"", parejas:30, victoria:false, ronda:3, posicion:"5-8/30", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-02-15", precio:22, lugar:`Sample venue 59`, provincia:"", localidad:"", parejas:28, victoria:false, ronda:3, posicion:"5-8/28", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-03-24", precio:0,  lugar:`Sample venue 28`, provincia:"", localidad:"", parejas:50, victoria:false, ronda:1, posicion:"33-50/50", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-04-26", precio:20, lugar:`Sample venue 61`, provincia:"", localidad:"", parejas:10, victoria:false, ronda:4, posicion:"2/10", premio:80, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-07-12", precio:20, lugar:`Sample venue 49`, provincia:"", localidad:"", parejas:20, victoria:false, ronda:1, posicion:"17-20/20", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-07-19", precio:20, lugar:`Sample venue 63`, provincia:"", localidad:"", parejas:20, victoria:false, ronda:3, posicion:"5-8/20", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-08-02", precio:20, lugar:`Sample venue 10`, provincia:"", localidad:"", parejas:62, victoria:false, ronda:1, posicion:"33-62/62", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-08-10", precio:10, lugar:`Sample venue 61`, provincia:"", localidad:"", parejas:9, victoria:false, ronda:4, posicion:"2/9", premio:30, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-08-17", precio:10, lugar:`Sample venue 46`, provincia:"", localidad:"", parejas:30, victoria:false, ronda:5, posicion:"2/30", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-08-19", precio:0,  lugar:`Sample venue 37`, provincia:"", localidad:"", parejas:128, victoria:false, ronda:2, posicion:"33-64/128", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-08-23", precio:20, lugar:`Sample venue 57`, provincia:"", localidad:"", parejas:14, victoria:false, ronda:2, posicion:"5-8/14", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-09-27", precio:22, lugar:`Sample venue 92`, provincia:"", localidad:"", parejas:42, victoria:false, ronda:3, posicion:"9-16/42", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-10-18", precio:30, lugar:`Sample venue 57`, provincia:"", localidad:"", parejas:25, victoria:false, ronda:1, posicion:"17-25/25", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-10-25", precio:0,  lugar:`Sample venue 73`, provincia:"", localidad:"", parejas:36, victoria:false, ronda:2, posicion:"17-32/36", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-12-20", precio:20, lugar:`Sample venue 38`, provincia:"", localidad:"", parejas:36, victoria:false, ronda:2, posicion:"17-32/36", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-12-29", precio:15, lugar:`Sample venue 31`, provincia:"", localidad:"", parejas:48, victoria:false, ronda:5, posicion:"3-4/48", premio:25, otrosPremios:"", anotaciones:"" },
+    { fecha:"2025-12-30", precio:20, lugar:`Sample venue 77`, provincia:"", localidad:"", parejas:32, victoria:false, ronda:4, posicion:"3-4/32", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2026-02-28", precio:20, lugar:`Sample venue 36`, provincia:"", localidad:"", parejas:64, victoria:false, ronda:4, posicion:"5-8/64", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2026-04-18", precio:20, lugar:`Sample venue 11`, provincia:"", localidad:"", parejas:84, victoria:false, ronda:2, posicion:"33-64/84", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2026-04-24", precio:0,  lugar:`Sample venue 48`, provincia:"", localidad:"", parejas:32, victoria:false, ronda:3, posicion:"5-8/32", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2026-05-03", precio:20, lugar:`Sample venue 55`, provincia:"", localidad:"", parejas:17, victoria:false, ronda:2, posicion:"9-16/17", premio:0, otrosPremios:"", anotaciones:"" },
+    { fecha:"2026-05-23", precio:20, lugar:`Sample venue 78`, provincia:"", localidad:"", parejas:4, victoria:false, ronda:1, posicion:"3-4/4", premio:16, otrosPremios:"", anotaciones:"" },
+    { fecha:"2026-07-04", precio:20, lugar:`Sample venue 39`, provincia:"", localidad:"", parejas:30, victoria:false, ronda:1, posicion:"17-30/30", premio:0, otrosPremios:"", anotaciones:"" }
   ];
 
   var torneos = [];
   var unsubscribeSnapshot = null;
+  var PROVINCIAS = ["Bizkaia", "Gipuzkoa", "Araba", "Nafarroa", "Otro"];
+  var statsProvinceFilter = "";
 
   /* ---------- Firestore data layer ---------- */
   function ensureSeeded(){
@@ -446,7 +526,7 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
   };
 
   function renderStats(){
-    var s = computeStats(torneos);
+    var s = computeStats(getFilteredTorneos());
     var el = document.getElementById("statsGrid");
     var winCls = s.balance >= 0 ? "pos" : "neg";
     var cards = [
@@ -469,11 +549,17 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
     }).join("");
   }
 
+  /* ---------- Province filtering ---------- */
+  function getFilteredTorneos(){
+    if (!statsProvinceFilter) return torneos;
+    return torneos.filter(function(t){ return t.provincia === statsProvinceFilter; });
+  }
+
   /* ---------- Chart ---------- */
   var chartState = { points: [], hoverIndex: -1 };
 
-  function getChartData(){
-    var sorted = torneos.slice().sort(function(a,b){ return a.fecha.localeCompare(b.fecha); });
+  function getChartData(list){
+    var sorted = list.slice().sort(function(a,b){ return a.fecha.localeCompare(b.fecha); });
     var running = 0;
     return sorted.map(function(t){
       running += (Number(t.premio)||0) - (Number(t.precio)||0);
@@ -613,14 +699,54 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
   }
 
   function renderChart(){
-    chartState.points = getChartData();
+    chartState.points = getChartData(getFilteredTorneos());
     var sub = document.getElementById("chartSub");
     if (!chartState.points.length){
       sub.textContent = "Sin torneos todavía";
     } else {
-      sub.textContent = "Suma de premios menos precios, en orden cronológico";
+      sub.textContent = "Suma de premios menos precios, en orden cronológico" + (statsProvinceFilter ? " · " + statsProvinceFilter : "");
     }
     drawChart();
+  }
+
+  function renderProvinceFilter(){
+    var el = document.getElementById("provinceFilter");
+    var present = PROVINCIAS.filter(function(p){
+      return torneos.some(function(t){ return t.provincia === p; });
+    });
+    var pills = [{ value:"", label:"Todas" }].concat(present.map(function(p){ return { value:p, label:p }; }));
+    el.innerHTML = pills.map(function(p){
+      var active = p.value === statsProvinceFilter ? " active" : "";
+      return '<button type="button" class="pill' + active + '" data-provincia="' + escapeHtml(p.value) + '">' + escapeHtml(p.label) + '</button>';
+    }).join("");
+  }
+
+  function renderProvinceBreakdown(){
+    var el = document.getElementById("provinceBreakdown");
+    var buckets = {};
+    torneos.forEach(function(t){
+      var key = t.provincia || "Sin especificar";
+      if (!buckets[key]) buckets[key] = { count:0, gastado:0, ganado:0 };
+      buckets[key].count++;
+      buckets[key].gastado += Number(t.precio) || 0;
+      buckets[key].ganado += Number(t.premio) || 0;
+    });
+    var keys = Object.keys(buckets).sort(function(a,b){ return buckets[b].count - buckets[a].count; });
+    if (!keys.length){
+      el.innerHTML = '<div class="empty">Sin torneos todavía</div>';
+      return;
+    }
+    var maxCount = Math.max.apply(null, keys.map(function(k){ return buckets[k].count; }));
+    el.innerHTML = keys.map(function(k){
+      var b = buckets[k];
+      var balance = b.ganado - b.gastado;
+      var pct = maxCount ? Math.round((b.count / maxCount) * 100) : 0;
+      return '<div class="province-bar-row">' +
+        '<div class="province-bar-label"><span class="name">' + escapeHtml(k) + '</span>' +
+          '<span class="meta">' + b.count + ' torneo' + (b.count===1?'':'s') + ' · ' + fmtEuro(balance) + '</span></div>' +
+        '<div class="province-bar-track"><div class="province-bar-fill" style="width:' + pct + '%"></div></div>' +
+      '</div>';
+    }).join("");
   }
 
   function setupChartInteraction(){
@@ -656,6 +782,14 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
   }
 
   /* ---------- List rendering ---------- */
+  var MESES_LARGOS = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+
+  function groupLabel(iso){
+    var parts = iso.split("-");
+    var y = parts[0], m = parseInt(parts[1],10) - 1;
+    return MESES_LARGOS[m] + " " + y;
+  }
+
   function renderList(){
     var el = document.getElementById("torneoList");
     var countEl = document.getElementById("listCount");
@@ -667,7 +801,15 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
       return;
     }
 
-    el.innerHTML = sorted.map(function(t){
+    var html = "";
+    var lastGroup = null;
+    sorted.forEach(function(t){
+      var group = t.fecha.slice(0,7);
+      if (group !== lastGroup){
+        html += '<div class="group-header">' + groupLabel(t.fecha) + '</div>';
+        lastGroup = group;
+      }
+
       var badge = t.victoria
         ? '<span class="badge win">Ganado</span>'
         : '<span class="badge lose">Ronda ' + (t.ronda||"?") + (isRondaFinal(t.parejas,t.ronda) ? " (final)" : "") + '</span>';
@@ -677,10 +819,13 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
       if (t.otrosPremios) chips += '<span class="chip">' + escapeHtml(t.otrosPremios) + '</span>';
 
       var anot = t.anotaciones ? '<div class="anotaciones">“' + escapeHtml(t.anotaciones) + '”</div>' : "";
+      var ubicacion = (t.provincia || t.localidad)
+        ? '<div class="locChip">' + escapeHtml([t.localidad, t.provincia].filter(Boolean).join(", ")) + '</div>'
+        : "";
 
-      return '<div class="panel torneo-card" data-id="'+t.id+'">' +
+      html += '<div class="panel torneo-card" data-id="'+t.id+'">' +
         '<div class="row1">' +
-          '<div><div class="fecha">'+fmtFechaLarga(t.fecha)+'</div><div class="lugar">'+escapeHtml(t.lugar)+'</div></div>' +
+          '<div><div class="fecha">'+fmtFechaLarga(t.fecha)+'</div><div class="lugar">'+escapeHtml(t.lugar)+'</div>' + ubicacion + '</div>' +
           badge +
         '</div>' +
         '<div class="meta-row">' +
@@ -695,7 +840,8 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
           '<button class="btn btn-small btn-danger" data-action="delete" data-id="'+t.id+'">Borrar</button>' +
         '</div>' +
       '</div>';
-    }).join("");
+    });
+    el.innerHTML = html;
   }
 
   function escapeHtml(str){
@@ -707,6 +853,8 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
   function renderAll(){
     renderStats();
     renderChart();
+    renderProvinceFilter();
+    renderProvinceBreakdown();
     renderList();
   }
 
@@ -717,6 +865,8 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
   var fFecha = document.getElementById("fFecha");
   var fPrecio = document.getElementById("fPrecio");
   var fLugar = document.getElementById("fLugar");
+  var fProvincia = document.getElementById("fProvincia");
+  var fLocalidad = document.getElementById("fLocalidad");
   var fParejas = document.getElementById("fParejas");
   var fRonda = document.getElementById("fRonda");
   var fVictoria = document.getElementById("fVictoria");
@@ -734,6 +884,8 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
       fFecha.value = torneo.fecha;
       fPrecio.value = torneo.precio;
       fLugar.value = torneo.lugar;
+      fProvincia.value = torneo.provincia || "";
+      fLocalidad.value = torneo.localidad || "";
       fParejas.value = torneo.parejas;
       fRonda.value = torneo.ronda || "";
       fVictoria.checked = !!torneo.victoria;
@@ -780,6 +932,8 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
       fecha: fFecha.value,
       precio: parseFloat(fPrecio.value) || 0,
       lugar: fLugar.value.trim(),
+      provincia: fProvincia.value,
+      localidad: fLocalidad.value.trim(),
       parejas: parseInt(fParejas.value,10) || 0,
       victoria: fVictoria.checked,
       ronda: fVictoria.checked ? null : (parseInt(fRonda.value,10) || null),
@@ -815,6 +969,28 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
         });
       }
     }
+  });
+
+  /* ---------- Tabs ---------- */
+  var tabButtons = document.querySelectorAll(".tab-btn");
+  var tabPanels = { torneos: document.getElementById("panelTorneos"), stats: document.getElementById("panelStats") };
+  tabButtons.forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var target = btn.getAttribute("data-tab");
+      tabButtons.forEach(function(b){ b.classList.toggle("active", b === btn); });
+      Object.keys(tabPanels).forEach(function(key){ tabPanels[key].classList.toggle("active", key === target); });
+      if (target === "stats") drawChart();
+    });
+  });
+
+  /* ---------- Province filter ---------- */
+  document.getElementById("provinceFilter").addEventListener("click", function(e){
+    var btn = e.target.closest("button[data-provincia]");
+    if (!btn) return;
+    statsProvinceFilter = btn.getAttribute("data-provincia");
+    renderStats();
+    renderChart();
+    renderProvinceFilter();
   });
 
   /* ---------- Init ---------- */
