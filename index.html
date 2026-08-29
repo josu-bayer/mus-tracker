@@ -242,6 +242,11 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
       <h1>Mus Tracker</h1>
       <p>Historial de torneos</p>
     </div>
+    <button class="btn btn-small btn-ghost" id="btnRefresh" type="button" title="Buscar actualizaciones" style="margin-left:auto">
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px">
+        <path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v6h-6"/>
+      </svg>
+    </button>
   </header>
 
   <nav class="tabs" role="tablist">
@@ -1206,6 +1211,16 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
       console.error("Service worker registration failed:", err);
     });
   }
+
+  document.getElementById("btnRefresh").addEventListener("click", function(){
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs){
+        regs.forEach(function(reg){ reg.update(); });
+      }).finally(function(){ window.location.reload(); });
+    } else {
+      window.location.reload();
+    }
+  });
 
   ensureSeeded().then(function(){
     startSync();
