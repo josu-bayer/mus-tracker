@@ -172,8 +172,8 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
 }
 .pill.active{background:rgba(212,175,55,0.18);color:var(--gold-bright);border-color:var(--gold)}
 
-.province-card{padding:16px 14px;margin-bottom:16px}
-.province-card h2{font-size:0.95rem;color:var(--gold-bright);margin-bottom:12px}
+.stats-panel{padding:16px 14px;margin-bottom:16px}
+.stats-panel h2{font-size:0.95rem;color:var(--gold-bright);margin-bottom:12px}
 .province-bar-row{margin-bottom:10px}
 .province-bar-row:last-child{margin-bottom:0}
 .province-bar-label{display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px}
@@ -181,6 +181,11 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
 .province-bar-label .meta{color:var(--muted)}
 .province-bar-track{height:8px;border-radius:99px;background:rgba(255,255,255,0.06);overflow:hidden}
 .province-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-bright));border-radius:99px}
+
+.highlight-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 0;border-bottom:1px solid var(--line-soft);font-size:0.84rem}
+.highlight-row:last-child{border-bottom:none;padding-bottom:0}
+.highlight-row .hl-label{color:var(--muted);flex:none}
+.highlight-row .hl-value{color:var(--ink);font-weight:700;text-align:right}
 
 .year-divider{
   display:flex;align-items:center;gap:12px;margin:28px 0 6px;
@@ -260,9 +265,24 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
       </div>
     </section>
 
-    <section class="panel province-card">
+    <section class="panel stats-panel">
+      <h2>Destacados</h2>
+      <div id="highlightsBody"></div>
+    </section>
+
+    <section class="panel stats-panel">
       <h2>Torneos por provincia</h2>
       <div id="provinceBreakdown"></div>
+    </section>
+
+    <section class="panel stats-panel">
+      <h2>Torneos por localidad</h2>
+      <div id="localidadBreakdown"></div>
+    </section>
+
+    <section class="panel stats-panel">
+      <h2>Torneos por ronda de eliminación</h2>
+      <div id="rondaBreakdown"></div>
     </section>
   </section>
 
@@ -738,17 +758,22 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
     }).join("");
   }
 
-  function renderProvinceBreakdown(){
-    var el = document.getElementById("provinceBreakdown");
+  function computeBreakdownBuckets(list, keyFn, fallbackLabel){
     var buckets = {};
-    torneos.forEach(function(t){
-      var key = t.provincia || "Sin especificar";
+    list.forEach(function(t){
+      var key = keyFn(t) || fallbackLabel;
       if (!buckets[key]) buckets[key] = { count:0, gastado:0, ganado:0 };
       buckets[key].count++;
       buckets[key].gastado += Number(t.precio) || 0;
       buckets[key].ganado += Number(t.premio) || 0;
     });
-    var keys = Object.keys(buckets).sort(function(a,b){ return buckets[b].count - buckets[a].count; });
+    return buckets;
+  }
+
+  function renderBreakdownBars(containerId, buckets, sortFn){
+    var el = document.getElementById(containerId);
+    var keys = Object.keys(buckets);
+    keys.sort(sortFn || function(a,b){ return buckets[b].count - buckets[a].count; });
     if (!keys.length){
       el.innerHTML = '<div class="empty">Sin torneos todavía</div>';
       return;
@@ -763,6 +788,78 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
           '<span class="meta">' + b.count + ' torneo' + (b.count===1?'':'s') + ' · ' + fmtEuro(balance) + '</span></div>' +
         '<div class="province-bar-track"><div class="province-bar-fill" style="width:' + pct + '%"></div></div>' +
       '</div>';
+    }).join("");
+  }
+
+  function renderProvinceBreakdown(){
+    var buckets = computeBreakdownBuckets(torneos, function(t){ return t.provincia; }, "Sin especificar");
+    renderBreakdownBars("provinceBreakdown", buckets);
+  }
+
+  function renderLocalidadBreakdown(){
+    var buckets = computeBreakdownBuckets(torneos, function(t){ return t.localidad; }, "Sin especificar");
+    renderBreakdownBars("localidadBreakdown", buckets);
+  }
+
+  function renderRondaBreakdown(){
+    var buckets = computeBreakdownBuckets(torneos, function(t){
+      if (t.victoria) return "Ganado";
+      if (!t.ronda) return "Sin especificar";
+      return "Ronda " + t.ronda + (isRondaFinal(t.parejas, t.ronda) ? " (final)" : "");
+    }, "Sin especificar");
+    renderBreakdownBars("rondaBreakdown", buckets, function(a,b){
+      if (a === "Ganado") return -1;
+      if (b === "Ganado") return 1;
+      if (a === "Sin especificar") return 1;
+      if (b === "Sin especificar") return -1;
+      return parseInt(a.replace(/\D/g,""),10) - parseInt(b.replace(/\D/g,""),10);
+    });
+  }
+
+  function parsePosicionPercentile(posicion){
+    if (!posicion) return null;
+    var m = /^(\d+)(?:-\d+)?\/(\d+)$/.exec(String(posicion).trim());
+    if (!m) return null;
+    var total = parseInt(m[2],10);
+    if (!total) return null;
+    return parseInt(m[1],10) / total;
+  }
+
+  function torneosSinceLastPremio(list){
+    var sorted = list.slice().sort(function(a,b){ return b.fecha.localeCompare(a.fecha); });
+    for (var i=0;i<sorted.length;i++){
+      if (Number(sorted[i].premio) > 0) return i;
+    }
+    return sorted.length;
+  }
+
+  function renderHighlights(){
+    var list = getFilteredTorneos();
+    var el = document.getElementById("highlightsBody");
+    if (!list.length){
+      el.innerHTML = '<div class="empty">Sin torneos todavía</div>';
+      return;
+    }
+
+    var withBalance = list.map(function(t){ return { t:t, bal:(Number(t.premio)||0) - (Number(t.precio)||0) }; });
+    var best = withBalance.reduce(function(a,b){ return b.bal > a.bal ? b : a; });
+    var worst = withBalance.reduce(function(a,b){ return b.bal < a.bal ? b : a; });
+    var biggest = list.reduce(function(a,b){ return (Number(b.parejas)||0) > (Number(a.parejas)||0) ? b : a; });
+
+    var percentiles = list.map(function(t){ return parsePosicionPercentile(t.posicion); }).filter(function(p){ return p !== null; });
+    var avgPercentile = percentiles.length ? percentiles.reduce(function(s,p){ return s+p; }, 0) / percentiles.length : null;
+
+    var sinceLast = torneosSinceLastPremio(list);
+
+    var rows = [
+      { label:"Mejor torneo", value: escapeHtml(best.t.lugar) + " · " + fmtEuro(best.bal) },
+      { label:"Peor torneo", value: escapeHtml(worst.t.lugar) + " · " + fmtEuro(worst.bal) },
+      { label:"Torneo más grande jugado", value: escapeHtml(biggest.lugar) + " · " + biggest.parejas + " parejas" },
+      { label:"Torneos sin premio en metálico", value: String(sinceLast) },
+      { label:"Percentil medio de eliminación", value: avgPercentile===null ? "—" : Math.round(avgPercentile*100) + "% del cuadro" }
+    ];
+    el.innerHTML = rows.map(function(r){
+      return '<div class="highlight-row"><span class="hl-label">'+r.label+'</span><span class="hl-value">'+r.value+'</span></div>';
     }).join("");
   }
 
@@ -886,8 +983,11 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
   function renderAll(){
     renderStats();
     renderChart();
+    renderHighlights();
     renderProvinceFilter();
     renderProvinceBreakdown();
+    renderLocalidadBreakdown();
+    renderRondaBreakdown();
     renderLocalidadList();
     renderList();
   }
@@ -958,12 +1058,14 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
     fRonda.parentElement.style.opacity = disabled ? "0.45" : "1";
   }
 
-  function updateProvinciaOtroState(){
-    fProvinciaOtroWrap.style.display = fProvincia.value === "Otro" ? "" : "none";
+  function updateProvinciaOtroState(autofocus){
+    var show = fProvincia.value === "Otro";
+    fProvinciaOtroWrap.style.display = show ? "" : "none";
+    if (show && autofocus) fProvinciaOtro.focus();
   }
 
   fVictoria.addEventListener("change", updateRondaState);
-  fProvincia.addEventListener("change", updateProvinciaOtroState);
+  fProvincia.addEventListener("change", function(){ updateProvinciaOtroState(true); });
 
   document.getElementById("btnNuevo").addEventListener("click", function(){ openForm(null); });
   document.getElementById("btnCancelar").addEventListener("click", closeForm);
@@ -1040,6 +1142,7 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
     statsProvinceFilter = btn.getAttribute("data-provincia");
     renderStats();
     renderChart();
+    renderHighlights();
     renderProvinceFilter();
   });
 
