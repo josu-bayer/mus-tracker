@@ -270,20 +270,22 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
       <div id="highlightsBody"></div>
     </section>
 
-    <section class="panel stats-panel">
-      <h2>Torneos por provincia</h2>
-      <div id="provinceBreakdown"></div>
-    </section>
+    <div id="crossProvinceStats">
+      <section class="panel stats-panel">
+        <h2>Torneos por provincia</h2>
+        <div id="provinceBreakdown"></div>
+      </section>
 
-    <section class="panel stats-panel">
-      <h2>Torneos por localidad</h2>
-      <div id="localidadBreakdown"></div>
-    </section>
+      <section class="panel stats-panel">
+        <h2>Torneos por localidad</h2>
+        <div id="localidadBreakdown"></div>
+      </section>
 
-    <section class="panel stats-panel">
-      <h2>Torneos por ronda de eliminación</h2>
-      <div id="rondaBreakdown"></div>
-    </section>
+      <section class="panel stats-panel">
+        <h2>Torneos por ronda de eliminación</h2>
+        <div id="rondaBreakdown"></div>
+      </section>
+    </div>
   </section>
 
   <footer>
@@ -980,6 +982,10 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
     el.innerHTML = present.map(function(loc){ return '<option value="' + escapeHtml(loc) + '"></option>'; }).join("");
   }
 
+  function updateCrossProvinceVisibility(){
+    document.getElementById("crossProvinceStats").style.display = statsProvinceFilter ? "none" : "";
+  }
+
   function renderAll(){
     renderStats();
     renderChart();
@@ -990,6 +996,7 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
     renderRondaBreakdown();
     renderLocalidadList();
     renderList();
+    updateCrossProvinceVisibility();
   }
 
   /* ---------- Form / modal ---------- */
@@ -1144,6 +1151,7 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
     renderChart();
     renderHighlights();
     renderProvinceFilter();
+    updateCrossProvinceVisibility();
   });
 
   /* ---------- Init ---------- */
