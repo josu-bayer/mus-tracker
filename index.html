@@ -748,11 +748,11 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
 
   function renderProvinceFilter(){
     var el = document.getElementById("provinceFilter");
-    var present = [];
+    var counts = {};
     torneos.forEach(function(t){
-      if (t.provincia && present.indexOf(t.provincia) === -1) present.push(t.provincia);
+      if (t.provincia) counts[t.provincia] = (counts[t.provincia] || 0) + 1;
     });
-    present.sort(function(a,b){ return a.localeCompare(b); });
+    var present = Object.keys(counts).sort(function(a,b){ return counts[b] - counts[a]; });
     var pills = [{ value:"", label:"Todas" }].concat(present.map(function(p){ return { value:p, label:p }; }));
     el.innerHTML = pills.map(function(p){
       var active = p.value === statsProvinceFilter ? " active" : "";
