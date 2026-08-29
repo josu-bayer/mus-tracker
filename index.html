@@ -182,13 +182,23 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
 .province-bar-track{height:8px;border-radius:99px;background:rgba(255,255,255,0.06);overflow:hidden}
 .province-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-bright));border-radius:99px}
 
+.year-divider{
+  display:flex;align-items:center;gap:12px;margin:28px 0 6px;
+  font-family:'Cinzel',Georgia,serif;font-size:1.05rem;font-weight:900;color:var(--gold-bright);
+  letter-spacing:0.03em;
+}
+.year-divider::before,.year-divider::after{
+  content:"";flex:1;height:2px;background:linear-gradient(90deg,transparent,var(--gold) 50%,transparent);
+}
+.torneo-list .year-divider:first-child{margin-top:0}
+
 .group-header{
-  position:sticky;top:0;z-index:3;margin:18px 0 10px;padding:7px 12px;
+  position:sticky;top:0;z-index:3;margin:10px 0 10px;padding:7px 12px;
   background:var(--felt-0);border:1px solid var(--line);border-radius:10px;
   font-family:'Cinzel',Georgia,serif;font-size:0.82rem;color:var(--gold-bright);
   text-transform:capitalize;letter-spacing:0.02em;
 }
-.torneo-list .group-header:first-child{margin-top:0}
+.torneo-list .year-divider:first-child + .group-header{margin-top:0}
 .locChip{color:var(--muted)}
 
 @media (min-width:520px){
@@ -803,8 +813,14 @@ footer{text-align:center;color:var(--muted);font-size:0.72rem;margin-top:26px;op
 
     var html = "";
     var lastGroup = null;
+    var lastYear = null;
     sorted.forEach(function(t){
+      var year = t.fecha.slice(0,4);
       var group = t.fecha.slice(0,7);
+      if (year !== lastYear){
+        html += '<div class="year-divider">' + year + '</div>';
+        lastYear = year;
+      }
       if (group !== lastGroup){
         html += '<div class="group-header">' + groupLabel(t.fecha) + '</div>';
         lastGroup = group;
