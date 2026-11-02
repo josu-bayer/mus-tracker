@@ -31,7 +31,7 @@ The `SEED` list in `index.html` holds sample tournaments. Venues and notes are p
 ## Running your own copy
 
 1. Create a Firebase project and enable Cloud Firestore.
-2. Replace the `YOUR_...` values in the `firebaseConfig` object and the `ALLOWED_EMAILS` list in `index.html`.
+2. Replace the `YOUR_...` values in the `firebaseConfig` object in `index.html`.
 3. Run `firebase use --add`, then `firebase deploy`.
 
 ## Security
